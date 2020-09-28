@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="dca24d9d-530e-47c7-b32d-232acefc8d77" basePath="/" >
+		<http:listener-connection host="0.0.0.0" port="8088" />
+	</http:listener-config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="d8b28b82-5074-42e8-943a-39c602e64d22" >
+		<jms:active-mq-connection >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<flow name="pub-consume-jmsFlow1" doc:id="edf3713d-15bd-48b7-ad54-468d6e08449e" >
+		<jms:listener doc:name="Listener" doc:id="b11a4fbe-ad4c-4e8b-a4e4-c18f94a6a7e5" config-ref="JMS_Config" destination="receiveMuleQueue_" numberOfConsumers="1">
+			<jms:consumer-type >
+				<jms:queue-consumer />
+			</jms:consumer-type>
+		</jms:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="95f3d944-d662-4d22-9fe2-3e56096d0f84" message="#['After publishing :: ' ++ payload]"/>
+		<set-payload value="#[payload ++ ' consume']" doc:name="Set Payload" doc:id="304bf481-a287-4553-96a9-357218979e3c" />
+		<logger level="INFO" doc:name="Logger" doc:id="a6122f57-d64d-40d3-b8c6-8014acc039ac" message="#['before consume :' ++ payload]"/>
+	</flow>
+	<flow name="pub-consume-jmsFlow" doc:id="06594d8e-78e0-4e46-bd7e-1362af5a828f" >
+		<http:listener doc:name="Listener" doc:id="039277e8-ef6b-4a1d-8aa0-a8038a6900bd" config-ref="HTTP_Listener_config" path="jms1"/>
+		<set-payload value="test publish consume message" doc:name="Set Payload" doc:id="32c6b6de-26bb-48e7-896c-a80b459ef8eb" />
+		<jms:publish-consume doc:name="Publish consume" doc:id="5c02c04c-8105-4ee3-bd87-75cfab77b77b" destination="receiveMuleQueue_" config-ref="JMS_Config">
+			<jms:message >
+				<jms:reply-to destination="myQ1" />
+			</jms:message>
+			<jms:consume-configuration maximumWait="1000000" />
+		</jms:publish-consume>
+		<logger level="INFO" doc:name="Logger" doc:id="e38c580f-2abb-4cd0-96aa-4e5b690739ec" message="#['After consume :: ' ++ payload]"/>
+	</flow>
+</mule>
